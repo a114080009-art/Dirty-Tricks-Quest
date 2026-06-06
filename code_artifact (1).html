@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>不講武德大冒險 - 意想不到的坑爹挑戰</title>
+  <!-- 引入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+      background-color: #090d16;
+      overflow-x: hidden;
+    }
+    .arcade-title {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+      font-weight: 900;
+      text-shadow: 0 0 10px #f43f5e, 0 0 20px #f43f5e;
+    }
+    canvas {
+      image-rendering: pixelated;
+    }
+    .modal-bg {
+      background-color: rgba(9, 13, 22, 0.95);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 selection:bg-rose-500 selection:text-white">
+
+  <!-- 頂部標題區 -->
+  <header class="text-center my-2 select-none">
+    <h1 class="text-4xl md:text-5xl font-extrabold text-rose-500 arcade-title tracking-wider mb-1">不講武德大冒險</h1>
+    <p class="text-sm text-slate-300 flex items-center justify-center gap-1.5">
+      <span class="text-yellow-400 font-bold">⚠️ 心理建設警告：</span>
+      <span>前方隨時會出現意想不到的陰險陷阱，請隨時保持警惕，保護好您的鍵盤！</span>
+    </p>
+  </header>
+
+  <!-- 遊戲主體區 -->
+  <main class="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center gap-6 my-auto relative">
+    
+    <!-- 左側：遊戲畫面 -->
+    <div class="flex flex-col items-center gap-3 w-full lg:w-3/4">
+      <div class="w-full flex items-center justify-between bg-slate-900/90 px-4 py-2.5 rounded-t-xl border-t-2 border-x-2 border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
+          <span class="text-sm font-bold text-slate-300">目前挑戰者：<span id="display-name" class="text-yellow-400">遊客</span></span>
+          <span class="ml-2 text-xs bg-rose-600/30 text-rose-400 border border-rose-500/50 px-2 py-0.5 rounded font-black" id="level-indicator">關卡 1</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-bold text-slate-300">💀 累計死亡：<span id="display-deaths" class="text-rose-400 text-lg">0</span> 次</span>
+          <span class="text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-400 font-bold" id="checkpoint-indicator">起點</span>
+        </div>
+      </div>
+      
+      <!-- 遊戲畫布容器 -->
+      <div class="relative w-full overflow-hidden bg-slate-950 rounded-b-xl border-b-4 border-x-2 border-slate-800 shadow-2xl" style="aspect-ratio: 16/8; max-height: 450px;">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+        
+        <!-- 假加載中畫面 -->
+        <div id="fake-loading" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center select-none hidden" style="z-index: 10;">
+          <div class="text-center">
+            <div class="inline-block w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-lg font-bold text-rose-500 tracking-widest animate-pulse">正在載入下一關關卡數據...</p>
+            <p class="text-xs text-slate-555 mt-2">請耐心等候，切勿關閉遊戲</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作說明 -->
+      <div class="flex flex-wrap justify-center gap-4 text-xs text-slate-400 mt-1 select-none font-bold">
+        <span>⌨️ <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">A</kbd> 或 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">←</kbd> 向左</span>
+        <span>⌨️ <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">D</kbd> 或 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">→</kbd> 向右</span>
+        <span>⌨️ <kbd class="px-3 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">Space</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">W</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">↑</kbd> 跳躍</span>
+        <span>⌨️ <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-200">R</kbd> 自殺重來</span>
+      </div>
+    </div>
+
+    <!-- 右側：即時排行榜 -->
+    <div class="w-full lg:w-1/4 bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col gap-4 self-stretch select-none">
+      <div class="border-b border-slate-800 pb-2">
+        <h2 class="text-xl font-bold text-yellow-500 flex items-center gap-2 justify-center lg:justify-start">
+          🏆 終極技術通關榜
+        </h2>
+        <p class="text-[10px] text-slate-500 text-center lg:text-left" id="rank-type-desc">看誰通關死得最少</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto max-h-[300px] lg:max-h-none">
+        <ul id="leaderboard-list" class="space-y-2">
+          <li class="animate-pulse bg-slate-800 h-10 rounded-lg"></li>
+          <li class="animate-pulse bg-slate-800 h-10 rounded-lg"></li>
+          <li class="animate-pulse bg-slate-800 h-10 rounded-lg"></li>
+        </ul>
+      </div>
+
+      <!-- 下方按鈕排版優化 -->
+      <div class="flex flex-col gap-2 w-full">
+        <button onclick="refreshLeaderboard()" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded-lg text-xs font-bold transition">
+          🔄 重新整理排行榜
+        </button>
+        <button onclick="clearLocalRankings()" class="w-full bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 py-2 rounded-lg text-xs font-bold text-red-400 transition">
+          🗑️ 清空本地紀錄
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部版權區 -->
+  <footer class="text-center text-xs text-slate-600 mt-4 select-none">
+    <p>© 2026 不講武德大冒險 繁體中文重製版. 僅供娛樂，砸壞鍵盤恕不負責.</p>
+  </footer>
+
+  <!-- 登入與建立暱稱 Modal -->
+  <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+    <div class="bg-slate-900 border-2 border-rose-500 p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
+      <h3 class="text-2xl font-bold text-rose-500 mb-2">請登錄您的挑戰大名</h3>
+      <p class="text-slate-400 text-xs mb-6">您的大名與通關時的「最少死亡次數」將會被刻在技術榮譽柱上。</p>
+      
+      <input type="text" id="nickname-input" placeholder="請輸入您的勇者/苦主暱稱" maxlength="15"
+        class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-4 text-center text-yellow-400 font-bold focus:outline-none focus:ring-2 focus:ring-rose-500 mb-4">
+        
+      <button onclick="startGameWithNickname()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-lg shadow-lg hover:shadow-rose-500/20 transition-all font-bold">
+        簽署生死狀，開始遊戲
+      </button>
+    </div>
+  </div>
+
+  <!-- 關卡成功 Modal -->
+  <div id="win-modal" class="fixed inset-0 z-50 flex items-center justify-center modal-bg p-4 hidden">
+    <div class="bg-slate-900 border-2 border-emerald-500 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center font-bold">
+      <h3 class="text-3xl font-bold text-emerald-500 mb-2 animate-pulse">🎉 奇蹟通關！</h3>
+      <p class="text-slate-300 text-sm mb-4">恭喜您！成功突破第一關與第二關所有不講武德的隱形陷阱！</p>
+      <div class="bg-slate-950 p-4 rounded-lg mb-6">
+        <p class="text-xs text-slate-400 font-normal">您的最終戰績</p>
+        <p class="text-2xl font-bold text-yellow-400 mt-1">💀 總計死亡 <span id="win-death-count">0</span> 次</p>
+      </div>
+      <button onclick="restartGame()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg transition-all">
+        再應戰一次（挑戰更少死亡通關）
+      </button>
+    </div>
+  </div>
+
+  <!-- 警告提示 -->
+  <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 bg-rose-600 text-white font-black py-3 px-6 rounded-full shadow-2xl transition-all duration-300 transform -translate-y-10 opacity-0 pointer-events-none text-sm tracking-wide border-2 border-rose-400 z-50 flex items-center gap-2">
+    ⚠️ 警告！
+  </div>
+
+  <script>
+    // ==========================================
+    // 💡 串接 Google 試算表設定區
+    // ==========================================
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyo6CW3uKkZpOEEqaq3FSQ8Bw8Rx-C1R9kVopsxII45NVhYNE7v5IPcQ0miqf7MKZ-O2g/exec"; 
+
+    // --- 基礎設定 ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const VIEW_WIDTH = 1200;
+    const VIEW_HEIGHT = 600;
+    canvas.width = VIEW_WIDTH;
+    canvas.height = VIEW_HEIGHT;
+
+    let LEVEL_WIDTH = 4200;
+
+    let nickname = "遊客";
+    let deathCount = 0;
+    let currentLevel = 1; 
+    let checkpoint = 0;   
+    let gameStarted = false; 
+
+    let cameraX = 0;
+    let serverRankingsCached = []; // 用於儲存最新的伺服器排行榜快取
+
+    const keys = { a: false, d: false, space: false };
+    let particles = [];
+
+    // --- 玩家物理物件 ---
+    const player = {
+      x: 100,
+      y: 350,
+      width: 32,
+      height: 32,
+      vx: 0,
+      vy: 0,
+      speed: 6.2,
+      gravity: 0.62,
+      jumpForce: -13.8,
+      isGrounded: false,
+      color: '#f1c40f',
+      facingRight: true
+    };
+
+    // --- 地圖配置 ---
+    const PLATFORM_COLOR = '#334155';
+    const PLATFORM_BORDER = '#475569';
+
+    const baseBlocksLvl1 = [
+      { x: 0, y: 480, w: 600, h: 120 },
+      { x: 750, y: 480, w: 200, h: 120 },
+      { x: 1100, y: 480, w: 400, h: 120 },
+      { x: 1100, y: 200, w: 400, h: 60 },
+      { x: 1650, y: 480, w: 150, h: 120 },
+      { x: 2200, y: 480, w: 300, h: 120 },
+      { x: 2650, y: 480, w: 150, h: 120 },
+      { x: 3000, y: 480, w: 400, h: 120 },
+      { x: 3650, y: 480, w: 550, h: 120 }
+    ];
+
+    const baseBlocksLvl2 = [
+      { x: 0, y: 480, w: 400, h: 120 },
+      { x: 550, y: 450, w: 200, h: 150 },
+      { x: 900, y: 480, w: 450, h: 120 }, 
+      { x: 1450, y: 420, w: 180, h: 180 }, 
+      { x: 1800, y: 480, w: 220, h: 120 },
+      { x: 2200, y: 200, w: 300, h: 40 }, 
+      { x: 2150, y: 480, w: 650, h: 120 }
+    ];
+
+    let activeBaseBlocks = [];
+
+    // --- 7 大隱形陷阱動態數據 (關卡 1) ---
+    let trap1_X = 600, trap1_Y = 480, trap1_W = 150, trap1_H = 120;
+    let trap1_triggered = false;
+    let trap2_Y = 100;
+    let trap2_triggered = false;
+    let trap3_X = 1880, trap3_Y = 400, trap3_W = 120, trap3_H = 30;
+    let trap3_triggered = false;
+    let trap4_spikeY = 480;
+    let trap4_triggered = false;
+    let trap5_X = 2880, trap5_Y = 100, trap5_W = 60, trap5_H = 60;
+    let trap5_triggered = false;
+    let trap6_flagX = 3120, trap6_flagY = 480;
+    let trap6_broken = false, trap6_floorY = 480;
+    let endGateX = 3900, endGateY = 380;
+    let fakeLoadingActive = false, fakeLoadingTimer = 0;
+    let gateMoved = false;
+
+    // --- 4 大隱形陷阱動態數據 (關卡 2) ---
+    let trap2_1_triggered = false;
+    let trap2_1_spikesY = -50;
+    let trap2_2_gravityActive = false;
+    let trap2_4_mimicTriggered = false;
+
+    let realGateX = 2650, realGateY = 380;
+    let mimicGateX = 2300, mimicGateY = 380;
+
+    const PORTAL_WIDTH = 40;
+    const PORTAL_HEIGHT = 100;
+
+    const checkPointPositionsLvl1 = [
+      { x: 100, y: 350 },
+      { x: 850, y: 350 },
+      { x: 1720, y: 350 }
+    ];
+
+    const checkPointPositionsLvl2 = [
+      { x: 100, y: 350 },
+      { x: 930, y: 350 },  
+      { x: 1900, y: 350 }
+    ];
+
+    let activeCheckpoints = [];
+
+    // --- 載入關卡數據 ---
+    function loadLevel(levelNum) {
+      currentLevel = levelNum;
+      document.getElementById('level-indicator').innerText = `關卡 ${levelNum}`;
+      checkpoint = 0;
+      document.getElementById('checkpoint-indicator').innerText = "起點";
+      
+      if (levelNum === 1) {
+        LEVEL_WIDTH = 4200;
+        activeBaseBlocks = [...baseBlocksLvl1];
+        activeCheckpoints = [...checkPointPositionsLvl1];
+      } else {
+        LEVEL_WIDTH = 2800;
+        activeBaseBlocks = [...baseBlocksLvl2];
+        activeCheckpoints = [...checkPointPositionsLvl2];
+        showToast("🔥 成功進入關卡 2！難度暴增！");
+      }
+      resetPlayer();
+      resetTraps();
+    }
+
+    // --- 粒子系統機制 ---
+    class Particle {
+      constructor(x, y, color, speedScale = 1) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 6 + 3;
+        this.vx = (Math.random() - 0.5) * 14 * speedScale;
+        this.vy = (Math.random() - 0.5) * 14 * speedScale;
+        this.alpha = 1;
+        this.color = color;
+        this.gravity = 0.15;
+        this.decay = 0.015;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.alpha -= this.decay;
+      }
+      draw(cX) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - cX, this.y, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    function createDeathParticles(x, y, color) {
+      for (let i = 0; i < 40; i++) {
+        particles.push(new Particle(x, y, color, 1.2));
+      }
+    }
+
+    function createCelebrationParticles(x, y) {
+      const colors = ['#f1c40f', '#2ecc71', '#3498db', '#e74c3c', '#9b59b6', '#e67e22'];
+      for (let i = 0; i < 15; i++) {
+        const randColor = colors[Math.floor(Math.random() * colors.length)];
+        particles.push(new Particle(x, y, randColor, 1.8));
+      }
+    }
+
+    function createDustParticles(x, y) {
+      for (let i = 0; i < 8; i++) {
+        const p = new Particle(x, y, '#94a3b8', 0.5);
+        p.decay = 0.04;
+        particles.push(p);
+      }
+    }
+
+    function createBoostParticles(x, y) {
+      if (Math.random() < 0.4) {
+        const p = new Particle(x, y, '#60a5fa', 0.3);
+        p.decay = 0.05;
+        p.vy = -Math.random() * 2 - 1;
+        particles.push(p);
+      }
+    }
+
+    // --- 重設所有陷阱與動態機關 ---
+    function resetTraps() {
+      // 關卡 1 重置
+      trap1_Y = 480;
+      trap1_triggered = false;
+      trap2_Y = 100;
+      trap2_triggered = false;
+      trap3_X = 1880;
+      trap3_triggered = false;
+      trap4_spikeY = 480;
+      trap4_triggered = false;
+      trap5_Y = 100;
+      trap5_triggered = false;
+      trap6_broken = false;
+      trap6_floorY = 480;
+      endGateX = 3900;
+      endGateY = 380;
+      gateMoved = false;
+      fakeLoadingActive = false;
+      document.getElementById('fake-loading').classList.add('hidden');
+
+      // 關卡 2 重置
+      trap2_1_triggered = false;
+      trap2_1_spikesY = -50;
+      trap2_2_gravityActive = false;
+      trap2_4_mimicTriggered = false;
+    }
+
+    // --- 鍵盤控制監聽 ---
+    window.addEventListener('keydown', (e) => {
+      if (gameStarted) {
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = true;
+        if (e.key === ' ' || e.code === 'Space' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+          keys.space = true;
+          e.preventDefault(); 
+        }
+        if (e.key === 'r' || e.key === 'R') {
+          showToast("💥 玩家選擇自我了斷！");
+          playerDie();
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = false;
+      if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
+      if (e.key === ' ' || e.code === 'Space' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.space = false;
+    });
+
+    // --- 登入與基礎操作監聽 ---
+    function startGameWithNickname() {
+      const input = document.getElementById('nickname-input').value.trim();
+      if (!input) {
+        showToast("⚠️ 名字不能為空！");
+        return;
+      }
+      nickname = input;
+      document.getElementById('display-name').innerText = nickname;
+      document.getElementById('login-modal').style.display = 'none';
+      
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+
+      gameStarted = true;
+
+      if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "在這裡貼上你的網址") {
+        document.getElementById('rank-type-desc').innerText = "看誰通關死得最少（雲端對接中）";
+      } else {
+        document.getElementById('rank-type-desc').innerText = "看誰通關死得最少（本地暫存模式）";
+      }
+
+      deathCount = 0;
+      loadLevel(1); 
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetPlayer() {
+      const pos = activeCheckpoints[checkpoint];
+      player.x = pos.x;
+      player.y = pos.y;
+      player.vx = 0;
+      player.vy = 0;
+      player.isGrounded = false;
+
+      // 瞬間將相機對齊玩家
+      let targetCam = player.x - VIEW_WIDTH / 3;
+      if (targetCam < 0) targetCam = 0;
+      if (targetCam > LEVEL_WIDTH - VIEW_WIDTH) targetCam = LEVEL_WIDTH - VIEW_WIDTH;
+      cameraX = targetCam;
+    }
+
+    // --- 死亡控制核心 ---
+    function playerDie() {
+      createDeathParticles(player.x + player.width/2, player.y + player.height/2, player.color);
+      createDeathParticles(player.x + player.width/2, player.y + player.height/2, '#ef4444');
+      
+      deathCount++;
+      document.getElementById('display-deaths').innerText = deathCount;
+
+      playDeathSound();
+
+      const roasts = [
+        "預判了你的預判！",
+        "這關卡毫無人性！",
+        "你以為那是平地？",
+        "堪稱藝術級的白給！",
+        "地心引力很舒服吧？",
+        "你又踩坑了！",
+        "不講武德，太不講武德了！"
+      ];
+      showToast(`💀 ${roasts[Math.floor(Math.random() * roasts.length)]}`);
+
+      // 💡 [重要修正] 比誰死得少時，進行中的死亡「不」同步上傳到通關榜，避免未通關的0死佔領第一名。
+      // syncScoreToDatabase 移至 gameWin() 通關時一併上傳！
+
+      resetPlayer();
+      resetTraps();
+    }
+
+    function playDeathSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(280, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    function playWinSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, index) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime + index * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + index * 0.08 + 0.15);
+          osc.start(audioCtx.currentTime + index * 0.08);
+          osc.stop(audioCtx.currentTime + index * 0.08 + 0.15);
+        });
+      } catch (e) {}
+    }
+
+    // --- 遊戲引擎主要循環 ---
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // --- 物理更新與碰撞邏輯 ---
+    function update() {
+      if (fakeLoadingActive) {
+        fakeLoadingTimer++;
+        if (fakeLoadingTimer > 110) {
+          fakeLoadingActive = false;
+          document.getElementById('fake-loading').classList.add('hidden');
+        }
+      }
+
+      let moveDir = 0;
+      if (keys.a) moveDir -= 1;
+      if (keys.d) moveDir += 1;
+
+      if (currentLevel === 2 && trap2_2_gravityActive) {
+        player.vx = 12.5; 
+        player.facingRight = true;
+        createBoostParticles(player.x, player.y + player.height);
+      } else {
+        player.vx = moveDir * player.speed;
+      }
+
+      if (player.vx > 0) player.facingRight = true;
+      if (player.vx > 0) player.facingRight = true;
+      if (player.vx < 0) player.facingRight = false;
+
+      if (keys.space && player.isGrounded) {
+        player.vy = player.jumpForce;
+        player.isGrounded = false;
+      }
+
+      let activeGravity = player.gravity;
+      let maxFall = 15;
+      
+      if (currentLevel === 2 && trap2_2_gravityActive) {
+        activeGravity = player.gravity * 4.5; 
+        maxFall = 35; 
+      }
+      
+      player.vy += activeGravity;
+      if (player.vy > maxFall) player.vy = maxFall;
+
+      player.x += player.vx;
+      player.y += player.vy;
+
+      if (player.x < 0) player.x = 0;
+      if (player.x > LEVEL_WIDTH - player.width) player.x = LEVEL_WIDTH - player.width;
+
+      let targetCameraX = player.x - VIEW_WIDTH / 3;
+      if (targetCameraX < 0) targetCameraX = 0;
+      if (targetCameraX > LEVEL_WIDTH - VIEW_WIDTH) targetCameraX = LEVEL_WIDTH - VIEW_WIDTH;
+      cameraX += (targetCameraX - cameraX) * 0.08;
+
+      player.isGrounded = false;
+      activeBaseBlocks.forEach(block => {
+        checkPlatformCollision(block);
+      });
+
+      // --- 關卡 1 陷阱碰撞與邏輯 ---
+      if (currentLevel === 1) {
+        const platform1 = { x: trap1_X, y: trap1_Y, w: trap1_W, h: trap1_H };
+        checkPlatformCollision(platform1);
+        if (player.x + player.width > trap1_X + 10 && player.x < trap1_X + trap1_W - 10) {
+          if (player.y + player.height >= trap1_Y - 5 && player.y + player.height <= trap1_Y + 15) {
+            trap1_triggered = true;
+          }
+        }
+        if (trap1_triggered) trap1_Y += 24;
+
+        if (player.x > 1200 && player.x < 1400) trap2_triggered = true;
+        if (trap2_triggered) {
+          trap2_Y += 18;
+          if (trap2_Y > 260) trap2_Y = 260;
+        }
+        if (player.x + player.width > 1240 && player.x < 1360 && player.y < trap2_Y + 100) {
+          playerDie();
+          return;
+        }
+
+        const platform3 = { x: trap3_X, y: trap3_Y, w: trap3_W, h: trap3_H };
+        checkPlatformCollision(platform3);
+        if (!trap3_triggered && player.x > 1730 && player.x < 1870 && !player.isGrounded) {
+          trap3_triggered = true;
+          trap3_X = 1980;
+          createDustParticles(1880 + 60, 400);
+          showToast("💨 懸浮島：閃開囉！");
+        }
+
+        if (player.x > 2280 && player.x < 2440) {
+          if (!trap4_triggered) {
+            trap4_triggered = true;
+            showToast("🌵 突發：地底巨刺襲來！");
+          }
+        }
+        if (trap4_triggered) {
+          trap4_spikeY -= 14;
+          if (trap4_spikeY < 420) trap4_spikeY = 420;
+        }
+        if (player.x + player.width > 2340 && player.x < 2380 && player.y + player.height >= trap4_spikeY + 10) {
+          playerDie();
+          return;
+        }
+
+        if (player.x > 2740 && player.x < 2900 && player.y < 350) trap5_triggered = true;
+        if (trap5_triggered) trap5_Y += 16;
+        if (player.x + player.width > trap5_X && player.x < trap5_X + trap5_W && player.y + player.height > trap5_Y && player.y < trap5_Y + trap5_H) {
+          playerDie();
+          return;
+        }
+        if (trap5_triggered && trap5_Y < 480) {
+          const stoneBlock = { x: trap5_X, y: trap5_Y, w: trap5_W, h: trap5_H };
+          checkPlatformCollision(stoneBlock);
+        }
+
+        const trap6_floor = { x: 3050, y: trap6_floorY, w: 150, h: 120 };
+        checkPlatformCollision(trap6_floor);
+        if (player.x + player.width > 3100 && player.x < 3150) {
+          if (!trap6_broken) {
+            trap6_broken = true;
+            showToast("❌ 存檔點損壞！地基塌陷！");
+          }
+        }
+        if (trap6_broken) trap6_floorY += 20;
+
+        if (player.x > 3730 && !gateMoved) {
+          endGateX = 3980;
+          gateMoved = true;
+          fakeLoadingActive = true;
+          fakeLoadingTimer = 0;
+          document.getElementById('fake-loading').classList.remove('hidden');
+          showToast("😈 傳送門瞬移了！");
+        }
+
+        if (player.x + player.width > endGateX && 
+            player.x < endGateX + PORTAL_WIDTH && 
+            player.y + player.height > endGateY && 
+            player.y < endGateY + PORTAL_HEIGHT) {
+          playWinSound();
+          loadLevel(2); 
+          return;
+        }
+      }
+
+      // --- 關卡 2 陷阱碰撞與邏輯 ---
+      if (currentLevel === 2) {
+        if (player.x > 410 && player.x < 530 && player.y > 200) {
+          player.vy -= 1.1; 
+          if (!trap2_1_triggered) {
+            trap2_1_triggered = true;
+            showToast("💨 隱形強風暴起！");
+          }
+        }
+        if (trap2_1_triggered) {
+          trap2_1_spikesY += 12; 
+          if (trap2_1_spikesY > 100) trap2_1_spikesY = 100;
+        }
+        if (player.x + player.width > 430 && player.x < 520 && player.y < trap2_1_spikesY + 60) {
+          playerDie();
+          return;
+        }
+
+        if (player.x > 1020 && player.x < 1220 && player.y + player.height >= 475) {
+          if (!trap2_2_gravityActive) {
+            trap2_2_gravityActive = true;
+            showToast("🌀 警告：引力推進鎖定！");
+          }
+        }
+        if (player.x > 1430 || player.x < 850) {
+          trap2_2_gravityActive = false;
+        }
+
+        if (player.x + player.width > mimicGateX && 
+            player.x < mimicGateX + PORTAL_WIDTH && 
+            player.y + player.height > mimicGateY && 
+            player.y < mimicGateY + PORTAL_HEIGHT) {
+          trap2_4_mimicTriggered = true;
+          playerDie();
+          showToast("💀 假門：意不意外？我是怪物！");
+          return;
+        }
+
+        if (player.x + player.width > realGateX && 
+            player.x < realGateX + PORTAL_WIDTH && 
+            player.y + player.height > realGateY && 
+            player.y < realGateY + PORTAL_HEIGHT) {
+          gameWin();
+          return;
+        }
+      }
+
+      if (player.y > 540) {
+        playerDie();
+        return;
+      }
+
+      updateCheckpoints();
+
+      particles.forEach((p, idx) => {
+        p.update();
+        if (p.alpha <= 0) particles.splice(idx, 1);
+      });
+    }
+
+    function checkPlatformCollision(block) {
+      if (player.x + player.width > block.x && player.x < block.x + block.w) {
+        if (player.y + player.height >= block.y && player.y + player.height - player.vy <= block.y + 16) {
+          player.y = block.y - player.height;
+          player.vy = 0;
+          player.isGrounded = true;
+        }
+        else if (player.y <= block.y + block.h && player.y - player.vy >= block.y + block.h - 16) {
+          player.y = block.y + block.h;
+          player.vy = 0.8;
+        }
+      }
+    }
+
+    function updateCheckpoints() {
+      if (currentLevel === 1) {
+        if (player.x > 840 && player.x < 900 && checkpoint < 1) {
+          checkpoint = 1;
+          document.getElementById('checkpoint-indicator').innerText = "存檔點 1";
+          showToast("💾 已存檔 (1/2)");
+          createCelebrationParticles(player.x + 16, player.y);
+        }
+        if (player.x > 1700 && player.x < 1760 && checkpoint < 2) {
+          checkpoint = 2;
+          document.getElementById('checkpoint-indicator').innerText = "存檔點 2";
+          showToast("💾 已存檔 (2/2)");
+          createCelebrationParticles(player.x + 16, player.y);
+        }
+      } else {
+        if (player.x > 950 && player.x < 1050 && checkpoint < 1) {
+          checkpoint = 1;
+          document.getElementById('checkpoint-indicator').innerText = "存檔點 1";
+          showToast("💾 已存檔 (1/2)");
+          createCelebrationParticles(player.x + 16, player.y);
+        }
+        if (player.x > 1820 && player.x < 1880 && checkpoint < 2) {
+          checkpoint = 2;
+          document.getElementById('checkpoint-indicator').innerText = "存檔點 2";
+          showToast("💾 已存檔 (2/2)");
+          createCelebrationParticles(player.x + 16, player.y);
+        }
+      }
+    }
+
+    // --- 繪製畫布畫面 ---
+    function draw() {
+      ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+
+      ctx.save();
+      const grad = ctx.createLinearGradient(0, 0, 0, VIEW_HEIGHT);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+
+      // 網格裝飾
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      const offsetGrid = cameraX % 60;
+      for (let i = -offsetGrid; i < VIEW_WIDTH; i += 60) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, VIEW_HEIGHT);
+        ctx.stroke();
+      }
+
+      if (currentLevel === 1) {
+        for (let s = 1800; s < 2200; s += 20) {
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, 580);
+          ctx.lineTo(s + 10 - cameraX, 540);
+          ctx.lineTo(s + 20 - cameraX, 580);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        activeBaseBlocks.forEach(block => {
+          drawPlatform(block.x - cameraX, block.y, block.w, block.h);
+        });
+
+        drawPlatform(trap1_X - cameraX, trap1_Y, trap1_W, trap1_H);
+
+        ctx.fillStyle = PLATFORM_COLOR;
+        ctx.fillRect(1240 - cameraX, 100, 120, 100);
+        ctx.fillStyle = '#ef4444';
+        for (let s = 1240; s < 1360; s += 20) {
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, trap2_Y + 100);
+          ctx.lineTo(s + 10 - cameraX, trap2_Y + 135);
+          ctx.lineTo(s + 20 - cameraX, trap2_Y + 100);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        drawPlatform(trap3_X - cameraX, trap3_Y, trap3_W, trap3_H);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(2340 - cameraX, 480);
+        ctx.lineTo(2350 - cameraX, trap4_spikeY);
+        ctx.lineTo(2360 - cameraX, 480);
+        ctx.lineTo(2370 - cameraX, trap4_spikeY);
+        ctx.lineTo(2380 - cameraX, 480);
+        ctx.closePath();
+        ctx.fill();
+
+        if (trap5_triggered) {
+          ctx.fillStyle = '#f43f5e';
+          ctx.shadowColor = '#f43f5e';
+          ctx.shadowBlur = 15;
+        } else {
+          ctx.fillStyle = PLATFORM_COLOR;
+        }
+        ctx.fillRect(trap5_X - cameraX, trap5_Y, trap5_W, trap5_H);
+        ctx.strokeStyle = PLATFORM_BORDER;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(trap5_X - cameraX, trap5_Y, trap5_W, trap5_H);
+        ctx.restore();
+
+        drawPlatform(3050 - cameraX, trap6_floorY, 150, 120);
+        drawFlag(trap6_flagX - cameraX, trap6_flagY, trap6_broken);
+
+        drawFlag(850 - cameraX, 480, false, checkpoint >= 1);
+        drawFlag(1720 - cameraX, 480, false, checkpoint >= 2);
+
+        for (let s = 3650; s < 3960; s += 20) {
+          ctx.fillStyle = '#f43f5e';
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, 580);
+          ctx.lineTo(s + 10 - cameraX, 545);
+          ctx.lineTo(s + 20 - cameraX, 580);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        drawPortal(endGateX - cameraX, endGateY, '#10b981');
+      }
+
+      if (currentLevel === 2) {
+        for (let s = 400; s < 550; s += 15) {
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, 580);
+          ctx.lineTo(s + 7.5 - cameraX, 540);
+          ctx.lineTo(s + 15 - cameraX, 580);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        for (let s = 1350; s < 1450; s += 15) {
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, 580);
+          ctx.lineTo(s + 7.5 - cameraX, 540);
+          ctx.lineTo(s + 15 - cameraX, 580);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        activeBaseBlocks.forEach(block => {
+          drawPlatform(block.x - cameraX, block.y, block.w, block.h);
+        });
+
+        // ⚡ 關卡 2 - 陷阱 1：風吹天花板刺槌
+        ctx.fillStyle = PLATFORM_COLOR;
+        ctx.fillRect(430 - cameraX, 0, 90, 80);
+        ctx.fillStyle = '#ef4444';
+        for (let s = 430; s < 520; s += 15) {
+          ctx.beginPath();
+          ctx.moveTo(s - cameraX, trap2_1_spikesY + 80);
+          ctx.lineTo(s + 7.5 - cameraX, trap2_1_spikesY + 115);
+          ctx.lineTo(s + 15 - cameraX, trap2_1_spikesY + 80);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // 繪製上升氣流粒子裝飾
+        if (Math.random() < 0.15) {
+          particles.push(new Particle(420 + Math.random() * 100, 480, '#38bdf8', 0.2));
+        }
+
+        // ⚡ 關卡 2 - 陷阱 2：重力加速推進墊
+        ctx.save();
+        if (trap2_2_gravityActive) {
+          const pulse = Math.abs(Math.sin(Date.now() / 100)) * 10;
+          ctx.shadowColor = '#3b82f6';
+          ctx.shadowBlur = 15 + pulse;
+          ctx.fillStyle = '#60a5fa';
+        } else {
+          ctx.fillStyle = '#1d4ed8';
+        }
+        ctx.fillRect(1020 - cameraX, 480, 200, 10);
+        ctx.restore();
+        
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText("⚡ SPEED BOOSTER & HEAVY FIELD ⚡", 1025 - cameraX, 505);
+
+        drawPortal(mimicGateX - cameraX, mimicGateY, '#f43f5e'); 
+        drawPortal(realGateX - cameraX, realGateY, '#10b981');   
+
+        drawFlag(1000 - cameraX, 480, false, checkpoint >= 1);
+        drawFlag(1900 - cameraX, 480, false, checkpoint >= 2);
+      }
+
+      // 玩家小方塊
+      ctx.save();
+      if (currentLevel === 2 && trap2_2_gravityActive) {
+        ctx.fillStyle = '#60a5fa';
+        ctx.shadowColor = '#3b82f6';
+        ctx.shadowBlur = 20;
+      } else {
+        ctx.fillStyle = player.color;
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 12;
+      }
+      ctx.fillRect(player.x - cameraX, player.y, player.width, player.height);
+      
+      ctx.fillStyle = '#000000';
+      if (player.facingRight) {
+        ctx.fillRect(player.x + 20 - cameraX, player.y + 8, 5, 7);
+        ctx.fillRect(player.x + 10 - cameraX, player.y + 8, 5, 7);
+      } else {
+        ctx.fillRect(player.x + 7 - cameraX, player.y + 8, 5, 7);
+        ctx.fillRect(player.x + 17 - cameraX, player.y + 8, 5, 7);
+      }
+      ctx.restore();
+
+      particles.forEach(p => p.draw(cameraX));
+
+      if (currentLevel === 2 && trap2_2_gravityActive) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+        ctx.lineWidth = 10;
+        ctx.strokeRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function drawPlatform(x, y, w, h) {
+      ctx.fillStyle = PLATFORM_COLOR;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = PLATFORM_BORDER;
+      ctx.fillRect(x, y, w, 8);
+    }
+
+    // 繪製高擬真傳送門
+    function drawPortal(x, y, color) {
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, 40, 100);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(x + 5, y + 5, 30, 90);
+      const pulse = Math.abs(Math.sin(Date.now() / 150)) * 8;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + 20, y + 50, 8 + pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFlag(x, y, isBroken = false, isActive = false) {
+      ctx.save();
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(x - 3, y - 50, 6, 50);
+      
+      ctx.fillStyle = isBroken ? '#ef4444' : (isActive ? '#10b981' : '#f1c40f');
+      ctx.beginPath();
+      ctx.moveTo(x + 3, y - 50);
+      ctx.lineTo(x + 25, y - 40);
+      ctx.lineTo(x + 3, y - 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // --- 提示框控制 ---
+    let toastTimeout = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      
+      toast.classList.remove('opacity-0', '-translate-y-10');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      
+      if (toastTimeout) clearTimeout(toastTimeout);
+      
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-10');
+      }, 4500);
+    }
+
+    // --- 贏得整個遊戲大結局 ---
+    function gameWin() {
+      playWinSound();
+      document.getElementById('win-death-count').innerText = deathCount;
+      document.getElementById('win-modal').style.display = 'flex';
+      document.getElementById('win-modal').classList.remove('hidden');
+
+      // 💡 [通關同步] 抵達終點、完美通關！只有這時才上傳最終死亡數（保留歷史最少死亡紀錄）
+      syncScoreToDatabase(nickname, deathCount);
+
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+          createCelebrationParticles(player.x, player.y - 100);
+          createCelebrationParticles(player.x - 100, player.y - 50);
+          createCelebrationParticles(player.x + 100, player.y - 50);
+        }, i * 300);
+      }
+    }
+
+    function restartGame() {
+      document.getElementById('win-modal').style.display = 'none';
+      document.getElementById('win-modal').classList.add('hidden');
+      deathCount = 0;
+      document.getElementById('display-deaths').innerText = deathCount;
+      loadLevel(1); 
+    }
+
+    // ==========================================
+    // 🌐 排行榜與數據同步核心機制 (GAS / LocalStorage)
+    // ==========================================
+    const STORAGE_KEY = "level_devil_scores_local";
+
+    function syncScoreToDatabase(name, deaths) {
+      // [樂觀 UI] 在向後端發送請求的同時，立刻對本地快取進行樂觀更新並重新排序渲染！
+      saveLocalData(name, deaths);
+
+      if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "在這裡貼上你的網址") {
+        const payload = {
+          name: name,
+          deaths: deaths
+        };
+        
+        fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors', 
+          headers: {
+            'Content-Type': 'text/plain' 
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(() => {
+          // 背景每隔 1.5 秒更新一次雲端真實榜，避免拉取時雲端尚未寫入完畢
+          setTimeout(refreshLeaderboardSilent, 1500);
+        })
+        .catch(err => {
+          console.warn("無法與雲端試算表連線，維持本地排行榜。");
+        });
+      }
+    }
+
+    // 主動拉取雲端排行榜（帶載入動畫）
+    function refreshLeaderboard() {
+      const listEl = document.getElementById('leaderboard-list');
+      listEl.innerHTML = `<li class="text-center py-4 text-xs text-slate-500">正在整理通關名單...</li>`;
+      
+      if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "在這裡貼上你的網址") {
+        fetch(`${GAS_WEB_APP_URL}?action=get`)
+        .then(res => res.json())
+        .then(rankings => {
+          serverRankingsCached = rankings;
+          renderLeaderboard(rankings);
+        })
+        .catch(err => {
+          console.warn("無法從雲端讀取，改用本地快取排行榜。");
+          renderLeaderboard(getLocalLeaderboard());
+        });
+      } else {
+        setTimeout(() => {
+          renderLeaderboard(getLocalLeaderboard());
+        }, 500);
+      }
+    }
+
+    // 背景靜默整理雲端排行榜（不帶加載動畫，提升遊戲遊玩流暢度）
+    function refreshLeaderboardSilent() {
+      if (GAS_WEB_APP_URL && GAS_WEB_APP_URL !== "在這裡貼上你的網址") {
+        fetch(`${GAS_WEB_APP_URL}?action=get`)
+        .then(res => res.json())
+        .then(rankings => {
+          serverRankingsCached = rankings;
+          renderLeaderboard(rankings);
+        })
+        .catch(() => {});
+      }
+    }
+
+    // --- 本地數據備用存取機制 ---
+    function getLocalLeaderboard() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) {
+        const sample = []; 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sample));
+        return sample;
+      }
+      return JSON.parse(data);
+    }
+
+    // [取代與最優機制] 用於儲存與刷新數據
+    function saveLocalData(name, deaths) {
+      let data = getLocalLeaderboard();
+      const existing = data.find(p => p.name === name);
+      
+      if (existing) {
+        // 💡 [更新為：死越少越好] 保留歷史最少（最優秀）的通關死亡次數！
+        existing.deaths = Math.min(existing.deaths, deaths);
+      } else {
+        data.push({ name, deaths });
+      }
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderLeaderboard(data);
+    }
+
+    // [一鍵清空本地紀錄快取]
+    function clearLocalRankings() {
+      localStorage.removeItem(STORAGE_KEY);
+      // 寫入空陣列
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      showToast("🗑️ 本地通關排行已成功清空！");
+      refreshLeaderboard();
+    }
+
+    // [樂觀渲染機制] 將本地通關數據插進去進行同步渲染排序
+    function renderLeaderboard(list) {
+      const listEl = document.getElementById('leaderboard-list');
+      listEl.innerHTML = "";
+      
+      let displayList = JSON.parse(JSON.stringify(list));
+      
+      // [前端強制去重防禦] 同個名字出現多次，只保留死亡數最小（技術最好）的那筆！
+      let uniqueMap = {};
+      displayList.forEach(p => {
+        let pName = String(p.name).trim();
+        if (!uniqueMap[pName] || p.deaths < uniqueMap[pName].deaths) {
+          uniqueMap[pName] = { name: pName, deaths: Number(p.deaths) };
+        }
+      });
+      displayList = Object.values(uniqueMap);
+      
+      // 排行榜規則：死亡次數由少到多排序（升序：看誰技術最好）
+      displayList.sort((a, b) => a.deaths - b.deaths);
+      
+      // 排除尚未通關的預設遊客，只渲染有實際數據的名單
+      let validList = displayList.filter(p => p.name !== "遊客" && p.deaths >= 0);
+      
+      if (validList.length === 0) {
+        listEl.innerHTML = `<li class="text-center py-4 text-xs text-slate-500 font-bold">🏆 尚無通關紀錄</li>`;
+        return;
+      }
+
+      validList.slice(0, 5).forEach((p, idx) => {
+        let medal = "🥇";
+        let colorClass = "text-slate-300";
+        if (idx === 0) { medal = "👑"; colorClass = "text-yellow-400 font-extrabold"; }
+        if (idx === 1) { medal = "🥈"; colorClass = "text-slate-100 font-bold"; }
+        if (idx === 2) { medal = "🥉"; colorClass = "text-amber-500 font-bold"; }
+        if (idx > 2) { medal = "🏅"; }
+
+        const li = document.createElement('li');
+        li.className = `flex justify-between items-center bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800/80 transition duration-150`;
+        li.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-sm">${medal}</span>
+            <span class="text-xs ${colorClass}">${p.name}</span>
+          </div>
+          <span class="text-xs text-emerald-400 font-bold">${p.deaths} 次通關</span>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+  </script>
+</body>
+</html>
